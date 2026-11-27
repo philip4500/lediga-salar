@@ -85,13 +85,16 @@ h1{font:700 34px/1.1 -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui
 .set label{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;font-size:15px}
 .set label+label{border-top:.5px solid var(--sep)}
 .set .seg{flex:0 1 230px}
-.wid{padding:16px}
-.wid h3{font-size:15px;margin:0 0 6px}
-.wid ol{margin:0 0 4px;padding-left:20px;font-size:15px}.wid li{margin:5px 0}
-.wid hr{border:0;border-top:.5px solid var(--sep);margin:16px 0}
+.wid summary{list-style:none;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;font-size:17px}
+.wid summary::-webkit-details-marker{display:none}
+.wid[open] summary .chev{transform:rotate(90deg)}
+.wbody{padding:0 16px 16px;border-top:.5px solid var(--sep)}
+.wid .lead{color:var(--sec);margin:12px 0 14px}
+.wid h3{font-size:13px;font-weight:600;color:var(--sec);text-transform:uppercase;letter-spacing:.02em;margin:16px 0 4px}
+.wid ol{margin:0;padding-left:20px;font-size:15px}.wid li{margin:5px 0}
 .wid p{font-size:15px;margin:0 0 6px}
-.btn{display:block;width:100%;margin-top:12px;border:0;border-radius:12px;background:var(--blue);color:#fff;font:600 17px/1 inherit;font-family:inherit;padding:14px;cursor:pointer}
-.btn:active{opacity:.7}
+.btn{display:block;width:100%;margin-top:12px;border:0;border-radius:10px;background:var(--fill);color:var(--blue);font:600 15px/1 inherit;font-family:inherit;padding:12px;cursor:pointer}
+.btn:active{opacity:.6}
 a{color:var(--blue);text-decoration:none}
 code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--fill);padding:1px 5px;border-radius:5px}
 
@@ -154,16 +157,18 @@ code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--fill
       </div>
     </section>
     <section>
-      <div class="hd"><span data-t="widget"></span></div>
-      <div class="card wid">
-        <h3>iPhone</h3>
-        <ol data-t="steps"></ol>
-        <button class="btn" id="copy" data-t="copy"></button>
-        <hr>
-        <h3>Mac</h3>
-        <p data-t="mac1"></p>
-        <p data-t="mac2"></p>
-      </div>
+      <details class="card wid">
+        <summary><span data-t="widget"></span><span class="chev">›</span></summary>
+        <div class="wbody">
+          <p class="lead" data-t="lead"></p>
+          <h3>iPhone</h3>
+          <ol data-t="steps"></ol>
+          <button class="btn" id="copy" data-t="copy"></button>
+          <h3>Mac</h3>
+          <p data-t="mac1"></p>
+          <p data-t="mac2"></p>
+        </div>
+      </details>
       <div class="foot" data-t="privacy"></div>
     </section>
   </div>
@@ -181,10 +186,10 @@ sv:{title:"Datorsalar",rooms:"Salar",settings:"Inställningar",appearance:"Utsee
  freeNow:(f,n)=>f+" av "+n+" lediga nu",freeDay:(f,n)=>f+" av "+n+" helt lediga",soonHint:"Orange prick = bokas inom 30 min",allBusy:"Alla salar är bokade just nu",dayHint:"utan bokningar den dagen",
  freeUntil:"Ledig till ",freeFrom:"Ledig från ",freeRest:"Ledig resten av dagen",busyRest:"Bokad resten av dagen",freeAll:"Ledig hela dagen",nb:n=>n+(n>1?" bokningar":" bokning"),none:"Inga bokningar.",booking:"Bokning",
  foot:"Tryck på en sal för att se bokningarna. Orange = tentamen. Data från TimeEdit, uppdateras var 5:e minut.",
- widget:"Widget",copy:"Kopiera widget-kod",copied:"Kopierad ✓",
- steps:'<li>Installera gratisappen <a href="https://apps.apple.com/app/scriptable/id1405459188">Scriptable</a>.</li><li>Tryck på knappen nedan, öppna Scriptable, tryck <b>+</b> och klistra in. Döp skriptet till <b>Datorsalar</b>.</li><li>Håll in hemskärmen → <b>+</b> → Scriptable → välj storlek → håll in widgeten → Redigera → Script: <b>Datorsalar</b>. Skriv <code>en</code> under Parameter för engelska.</li>',
- mac1:"<b>Widget:</b> med macOS Sonoma eller senare kan iPhone-widgeten visas på Macens skrivbord. Högerklicka på skrivbordet → Redigera widgetar → välj din iPhone → Scriptable. Kräver samma Apple-ID och att iPhonen är i närheten.",
- mac2:"<b>Som app:</b> öppna sidan i Safari → Arkiv → Lägg till i Dock.",
+ widget:"Widget för hemskärmen",lead:"Visa salarna direkt på hemskärmen eller skrivbordet.",copy:"Kopiera widget-kod",copied:"Kopierad ✓",
+ steps:'<li>Widgeten körs i appen Scriptable (gratis i App Store).</li><li>Kopiera koden nedan, öppna Scriptable, tryck + och klistra in. Döp skriptet till Datorsalar.</li><li>Lägg till en Scriptable-widget på hemskärmen, håll in den → Redigera → välj skriptet Datorsalar. Skriv <code>en</code> under Parameter för engelska.</li>',
+ mac1:"Med macOS Sonoma eller senare kan iPhone-widgeten visas på Macens skrivbord. Högerklicka på skrivbordet → Redigera widgetar → välj din iPhone → Scriptable. Kräver samma Apple-ID och att iPhonen är i närheten.",
+ mac2:"Som app: öppna sidan i Safari → Arkiv → Lägg till i Dock.",
  privacy:"Anonym besöksstatistik via GoatCounter, utan cookies.",
  refresh:"Uppdatera",prev:"Föregående dag",next:"Nästa dag",locale:"sv-SE"},
 en:{title:"Computer labs",rooms:"Rooms",settings:"Settings",appearance:"Appearance",language:"Language",auto:"Auto",light:"Light",dark:"Dark",
@@ -193,10 +198,10 @@ en:{title:"Computer labs",rooms:"Rooms",settings:"Settings",appearance:"Appearan
  freeNow:(f,n)=>f+" of "+n+" free now",freeDay:(f,n)=>f+" of "+n+" free all day",soonHint:"Orange dot = booked within 30 min",allBusy:"All rooms are booked right now",dayHint:"with no bookings that day",
  freeUntil:"Free until ",freeFrom:"Free from ",freeRest:"Free for the rest of the day",busyRest:"Booked for the rest of the day",freeAll:"Free all day",nb:n=>n+(n>1?" bookings":" booking"),none:"No bookings.",booking:"Booking",
  foot:"Tap a room to see its bookings. Orange = exam. Data from TimeEdit, refreshed every 5 minutes.",
- widget:"Widget",copy:"Copy widget code",copied:"Copied ✓",
- steps:'<li>Install the free app <a href="https://apps.apple.com/app/scriptable/id1405459188">Scriptable</a>.</li><li>Tap the button below, open Scriptable, tap <b>+</b> and paste. Name the script <b>Datorsalar</b>.</li><li>Long-press the home screen → <b>+</b> → Scriptable → pick a size → long-press the widget → Edit → Script: <b>Datorsalar</b>. Type <code>en</code> as Parameter for English.</li>',
- mac1:"<b>Widget:</b> on macOS Sonoma or later, the iPhone widget can sit on your Mac desktop. Right-click the desktop → Edit Widgets → pick your iPhone → Scriptable. Needs the same Apple ID and the iPhone nearby.",
- mac2:"<b>As an app:</b> open the page in Safari → File → Add to Dock.",
+ widget:"Home screen widget",lead:"Show the rooms right on your home screen or desktop.",copy:"Copy widget code",copied:"Copied ✓",
+ steps:'<li>The widget runs in the app Scriptable (free on the App Store).</li><li>Copy the code below, open Scriptable, tap + and paste. Name the script Datorsalar.</li><li>Add a Scriptable widget to your home screen, long-press it → Edit → pick the script Datorsalar. Type <code>en</code> as Parameter for English.</li>',
+ mac1:"On macOS Sonoma or later, the iPhone widget can sit on your Mac desktop. Right-click the desktop → Edit Widgets → pick your iPhone → Scriptable. Needs the same Apple ID and the iPhone nearby.",
+ mac2:"As an app: open the page in Safari → File → Add to Dock.",
  privacy:"Anonymous visitor stats via GoatCounter, no cookies.",
  refresh:"Refresh",prev:"Previous day",next:"Next day",locale:"en-GB"}
 };
