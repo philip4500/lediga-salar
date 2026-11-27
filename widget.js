@@ -5,6 +5,22 @@
 const ROOMS = [["Bifrost","264060.195"],["Vanheim","990784.195"],["Jotunheim","990783.195"],["Gimle","660753.195"],["Valhall","267189.195"],["Glase","660756.195"],["Alfheim","264001.195"]];
 const PAGE = "https://philip4500.github.io/lediga-salar/";
 const START = 7, END = 22;
+const LANG = String(args.widgetParameter || "sv").toLowerCase().startsWith("en") ? "en" : "sv";
+const TX = {
+  sv: { title: "Datorsalar", free: "lediga", from: "fr. ", until: "till ", rest: "resten", allDay: "hela dagen", freeFrom: "Ledig från ", freeUntil: "Ledig till ", freeRest: "Ledig resten av dagen", busyRest: "Bokad resten av dagen", of: n => "av " + n + " salar lediga", upd: "uppdaterad ", err: "Kunde inte hämta schemat" },
+  en: { title: "Computer labs", free: "free", from: "from ", until: "until ", rest: "all day", allDay: "all day", freeFrom: "Free from ", freeUntil: "Free until ", freeRest: "Free rest of day", busyRest: "Booked rest of day", of: n => "of " + n + " labs free", upd: "updated ", err: "Couldn't load schedule" },
+}[LANG];
+
+// Anonym statistik: räknar en widget-användare per enhet och dag (GoatCounter, inga personuppgifter).
+async function ping() {
+  try {
+    const fm = FileManager.local(), f = fm.joinPath(fm.documentsDirectory(), "datorsalar-ping.txt");
+    const today = new Date().toISOString().slice(0, 10);
+    if (fm.fileExists(f) && fm.readString(f) === today) return;
+    const r = new Request("https://lediga-salar.goatcounter.com/count?p=" + encodeURIComponent("widget-" + (config.widgetFamily || "app")) + "&t=Widget&e=true&rnd=" + Math.random());
+    await r.load(); fm.writeString(f, today);
+  } catch (e) {}
+}
 
 const C = {
   bg:    Color.dynamic(new Color("#ffffff"), new Color("#1c1c1e")),
@@ -39,11 +55,11 @@ async function fetchData() {
     const cur = L.find(b => b.s <= nm && nm < b.e);
     if (cur) {
       let end = cur.e; for (const b of L) if (b.s <= end && b.e > end) end = b.e;
-      return { n, L, free: false, color: C.red, short: end >= 1440 ? "hela dagen" : "fr. " + hm(end), long: end >= 1440 ? "Bokad resten av dagen" : "Ledig från " + hm(end) };
+      return { n, L, free: false, color: C.red, short: end >= 1440 ? TX.allDay : TX.from + hm(end), long: end >= 1440 ? TX.busyRest : TX.freeFrom + hm(end) };
     }
     const up = L.find(b => b.s > nm);
-    if (!up) return { n, L, free: true, color: C.green, short: "resten", long: "Ledig resten av dagen" };
-    return { n, L, free: true, color: up.s - nm <= 30 ? C.orange : C.green, short: "till " + hm(up.s), long: "Ledig till " + hm(up.s) };
+    if (!up) return { n, L, free: true, color: C.green, short: TX.rest, long: TX.freeRest };
+    return { n, L, free: true, color: up.s - nm <= 30 ? C.orange : C.green, short: TX.until + hm(up.s), long: TX.freeUntil + hm(up.s) };
   });
 }
 
@@ -68,9 +84,9 @@ function bar(L, nm, w, h) {
 function header(w, rooms, compact) {
   const free = rooms.filter(r => r.free).length;
   const h = w.addStack(); h.centerAlignContent();
-  const t = h.addText("Datorsalar"); t.font = Font.boldSystemFont(compact ? 15 : 17); t.textColor = C.ink;
+  const t = h.addText(TX.title); t.font = Font.boldSystemFont(compact ? 15 : 17); t.textColor = C.ink;
   h.addSpacer();
-  const f = h.addText(free + "/" + rooms.length + " lediga"); f.font = Font.semiboldSystemFont(compact ? 12 : 14); f.textColor = free ? C.green : C.red;
+  const f = h.addText(free + "/" + rooms.length + " " + TX.free); f.font = Font.semiboldSystemFont(compact ? 12 : 14); f.textColor = free ? C.green : C.red;
 }
 
 async function build() {
@@ -79,14 +95,14 @@ async function build() {
   w.refreshAfterDate = new Date(Date.now() + 10 * 60 * 1000);
   let rooms;
   try { rooms = await fetchData(); }
-  catch (e) { const t = w.addText("Kunde inte hämta schemat"); t.font = Font.systemFont(13); t.textColor = C.sec; return w; }
+  catch (e) { const t = w.addText(TX.err); t.font = Font.systemFont(13); t.textColor = C.sec; return w; }
   const now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
 
   if (fam === "small") {
     w.setPadding(14, 14, 14, 14);
     const free = rooms.filter(r => r.free).length;
     const big = w.addText(String(free)); big.font = Font.boldRoundedSystemFont(40); big.textColor = free ? C.green : C.red;
-    const s = w.addText("av " + rooms.length + " salar lediga"); s.font = Font.mediumSystemFont(12); s.textColor = C.sec;
+    const s = w.addText(TX.of(rooms.length)); s.font = Font.mediumSystemFont(12); s.textColor = C.sec;
     w.addSpacer();
     for (const r of rooms.filter(r => r.free).slice(0, 3)) {
       const row = w.addStack(); row.centerAlignContent(); dot(row, r.color, 7); row.addSpacer(5);
@@ -121,11 +137,12 @@ async function build() {
       w.addSpacer(8);
     }
     w.addSpacer();
-    const f = w.addText("07–22 · uppdaterad " + hm(nm)); f.font = Font.systemFont(10); f.textColor = C.sec;
+    const f = w.addText("07–22 · " + TX.upd + hm(nm)); f.font = Font.systemFont(10); f.textColor = C.sec;
   }
   return w;
 }
 
+await ping();
 const widget = await build();
 if (config.runsInWidget) Script.setWidget(widget);
 else await widget.presentLarge();
