@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lediga datorsalar</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f6f7f9,#121417);--card:light-dark(#fff,#1b1e23);--ink:light-dark(#14171c,#e9ecf1);--mut:light-dark(#69707c,#9aa2ae);--line:light-dark(#e3e6eb,#2a2f37);--free:light-dark(#1f9d55,#3ccf7d);--busy:light-dark(#d64545,#ff6b6b);--blk:light-dark(#fde2e2,#4a2124);--blkb:light-dark(#e58f8f,#9b4448);--acc:#00b9e7}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:20px max(3vw,14px) 40px}
+h1{font-size:26px;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 16px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+button,input{font:inherit;font-size:15px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;min-height:40px}
+button:hover{border-color:var(--acc)}
+#status{color:var(--mut);margin-left:auto;font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;border-left:5px solid var(--free)}
+.card.busy{border-left-color:var(--busy)}
+.card b{display:block;font-size:17px}
+.card .st{font-weight:600;color:var(--free)}.card.busy .st{color:var(--busy)}
+.card .nx{font-size:13px;color:var(--mut)}
+.grid{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow-x:auto}
+.inner{min-width:760px;position:relative}
+.row{display:grid;grid-template-columns:100px 1fr;border-top:1px solid var(--line);min-height:52px}
+.row.head{border-top:0;min-height:28px}
+.name{padding:8px 10px;font-weight:600;display:flex;align-items:center}
+.track{position:relative}
+.tick{position:absolute;top:0;bottom:0;border-left:1px solid var(--line)}
+.tick span{position:absolute;top:6px;left:3px;font-size:12px;color:var(--mut)}
+.blk{position:absolute;top:5px;bottom:5px;background:var(--blk);border:1px solid var(--blkb);border-radius:6px;padding:3px 6px;font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:default}
+.blk.exam{background:repeating-linear-gradient(45deg,var(--blk),var(--blk) 6px,transparent 6px,transparent 10px);}
+.now{position:absolute;top:0;bottom:0;width:2px;background:var(--acc);z-index:2}
+.legend{font-size:13px;color:var(--mut);margin-top:10px}
+.err{background:var(--blk);border:1px solid var(--blkb);padding:10px 14px;border-radius:8px;margin-bottom:14px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lediga datorsalar</h1>
+  <p class="sub">Bokningar i TimeEdit för Bifrost, Vanheim, Jotunheim, Gimle, Valhall, Glase och Alfheim.</p>
+  <div class="bar">
+    <button id="prev">‹ Föregående</button>
+    <button id="today">Idag</button>
+    <button id="next">Nästa ›</button>
+    <input type="date" id="date">
+    <span id="status">Laddar…</span>
+  </div>
+  <div class="err" id="err"></div>
+  <div class="cards" id="cards"></div>
+  <div class="grid"><div class="inner" id="grid"></div></div>
+  <p class="legend">Röda block = bokat (håll muspekaren över för detaljer). Randiga block = tentamen. Blå linje = nu. Uppdateras automatiskt var 5:e minut. Data hämtas direkt från cloud.timeedit.net.</p>
+</div>
+<script>
+{
+const ROOMS=[["Bifrost","264060.195"],["Vanheim","990784.195"],["Jotunheim","990783.195"],["Gimle","660753.195"],["Valhall","267189.195"],["Glase","660756.195"],["Alfheim","264001.195"]];
+const START=7,END=22;
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const mins=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let day=new Date();
+
+async function load(){
+  const ds=iso(day),compact=ds.replaceAll("-","");
+  $("date").value=ds;$("status").textContent="Laddar…";$("err").style.display="none";
+  const url="https://cloud.timeedit.net/liu/web/schema/ri.json?h=t&sid=3&p="+compact+".x,"+compact+".x&objects="+ROOMS.map(r=>r[1]).join(",")+"&ox=0&types=0&fe=0&_="+Date.now();
+  try{
+    const r=await fetch(url);const j=await r.json();
+    const ci=j.columnheaders.indexOf("Lokal"),ki=j.columnheaders.indexOf("Kurs"),ti=j.columnheaders.indexOf("Undervisningstyp"),ii=j.columnheaders.indexOf("Information till student"),li=j.columnheaders.indexOf("Lärare");
+    const by={};ROOMS.forEach(([n])=>by[n]=[]);
+    for(const b of j.reservations||[]){
+      const rooms=(b.columns[ci]||"").split(",").map(s=>s.trim());
+      let s=b.startdate<ds?"00:00":b.starttime,e=b.enddate>ds?"24:00":b.endtime;
+      for(const[n]of ROOMS) if(rooms.includes(n)) by[n].push({s,e,kurs:b.columns[ki]||"",typ:b.columns[ti]||"",info:b.columns[ii]||"",lar:b.columns[li]||""});
+    }
+    for(const n in by) by[n].sort((a,b)=>mins(a.s)-mins(b.s));
+    render(by,ds);
+    $("status").textContent="Uppdaterad "+new Date().toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"});
+  }catch(e){
+    $("err").style.display="block";
+    $("err").textContent="Kunde inte hämta schemat från TimeEdit ("+e.message+"). Kontrollera nätverket och försök igen.";
+    $("status").textContent="";
+  }
+}
+
+function render(by,ds){
+  const now=new Date(),isToday=ds===iso(now),nm=now.getHours()*60+now.getMinutes();
+  // status cards
+  $("cards").innerHTML=ROOMS.map(([n])=>{
+    const L=by[n];let busy=false,txt="",nx="";
+    if(isToday){
+      const cur=L.find(b=>mins(b.s)<=nm&&nm<mins(b.e));
+      if(cur){busy=true;
+        let end=mins(cur.e);for(const b of L){if(mins(b.s)<=end&&mins(b.e)>end)end=mins(b.e)}
+        txt="Bokad";nx="Ledig från "+pad(Math.floor(end/60))+":"+pad(end%60)+" · "+esc(cur.typ||cur.kurs);
+      }else{const up=L.find(b=>mins(b.s)>nm);txt="Ledig nu";nx=up?"Till "+up.s+" ("+esc(up.typ||up.kurs)+")":"Resten av dagen"}
+    }else{busy=L.length>0;txt=L.length?L.length+" bokning"+(L.length>1?"ar":""):"Inga bokningar";nx=L.map(b=>b.s+"–"+b.e).join(", ")}
+    return `<div class="card${busy?" busy":""}"><b>${n}</b><span class="st">${txt}</span><div class="nx">${nx}</div></div>`;
+  }).join("");
+  // timeline
+  const span=(END-START)*60,pct=m=>Math.max(0,Math.min(100,(m-START*60)/span*100));
+  let ticks="";for(let h=START;h<=END;h++)ticks+=`<div class="tick" style="left:${pct(h*60)}%">${h<END?`<span>${pad(h)}</span>`:""}</div>`;
+  const nowLine=isToday&&nm>=START*60&&nm<=END*60?`<div class="now" style="left:${pct(nm)}%"></div>`:"";
+  let html=`<div class="row head"><div></div><div class="track">${ticks}</div></div>`;
+  for(const[n]of ROOMS){
+    const blocks=by[n].map(b=>{
+      const l=pct(mins(b.s)),w=pct(mins(b.e))-l;if(w<=0)return"";
+      const t=[b.s+"–"+b.e,b.typ,b.kurs,b.lar,b.info].filter(Boolean).join("\n");
+      return `<div class="blk${/tentamen/i.test(b.typ)?" exam":""}" style="left:${l}%;width:${w}%" title="${esc(t)}">${esc(b.s+" "+(b.typ||b.kurs))}</div>`;
+    }).join("");
+    html+=`<div class="row"><div class="name">${n}</div><div class="track">${ticks.replace(/<span>.*?<\/span>/g,"")}${blocks}${nowLine}</div></div>`;
+  }
+  $("grid").innerHTML=html;
+}
+
+$("prev").onclick=()=>{day.setDate(day.getDate()-1);load()};
+$("next").onclick=()=>{day.setDate(day.getDate()+1);load()};
+$("today").onclick=()=>{day=new Date();load()};
+$("date").onchange=e=>{if(e.target.value){const[y,m,d]=e.target.value.split("-").map(Number);day=new Date(y,m-1,d);load()}};
+setInterval(load,5*60*1000);
+load();
+}
+</script>
+</body>
+</html>
